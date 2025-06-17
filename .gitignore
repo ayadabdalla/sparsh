@@ -141,4 +141,4 @@ checkpoints/*
 
 # log
 experiments/*
-checkpoints/*
+outputs_sparsh/checkpoints/*
