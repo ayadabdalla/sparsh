@@ -1,0 +1,8 @@
+data_root: /mnt/dataset_drive/touch_datasets
+encoder_checkpoint_root: /home/epon04yc/sparsh/outputs_sparsh/checkpoints #/mnt/models_drive/touch_models/sparsh_models # TODO: @abdullah
+log_dir: /home/epon04yc/sparsh/experiments
+tacbench_dir: TODO@abdullah
+
+output_dir: ${hydra:runtime.output_dir}
+work_dir: ${hydra:runtime.cwd}
+

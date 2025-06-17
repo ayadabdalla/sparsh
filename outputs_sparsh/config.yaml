@@ -1,0 +1,218 @@
+paths:
+  data_root: /media/chiguera/GUM/
+  encoder_checkpoint_root: /media/chiguera/2TB/sparsh/encoders_460k/
+  log_dir: /media/chiguera/GUM/tactile_ssl/outputs_sparsh/${experiment_name}/logs/
+  output_dir: /media/chiguera/GUM/tactile_ssl/outputs_sparsh/${experiment_name}/
+  work_dir: ${hydra:runtime.cwd}
+wandb:
+  project: ${task_name}_${sensor}
+  entity: chiguera
+  save_dir: ${paths.output_dir}
+  id: ${hydra:job.id}_${experiment_name}
+  tags:
+  - ${ssl_name}
+  group: null
+  notes: null
+data:
+  train_val_split: null
+  train_data_budget: ${train_data_budget}
+  val_data_budget: ${val_data_budget}
+  max_train_data: null
+  sensor: digit
+  dataset:
+    _target_: tactile_ssl.data.vision_tactile_forcefield.VisionTactileBackboneDataset
+    config:
+      sensor: ${data.sensor}
+      remove_bg: true
+      out_format: concat_ch_img
+      num_frames: 2
+      frame_stride: 5
+      path_dataset: ${paths.data_root}/datasets/digitv1/Object-Slide/
+      path_bgs: ${paths.data_root}/datasets/digitv1/Object-Slide/bgs/
+      list_datasets:
+      - 004_sugar_box/dataset_0
+      - 025_mug/dataset_0
+      - 048_hammer/dataset_0
+      - 005_tomato_soup_can/dataset_0
+      - 035_power_drill/dataset_0
+      - 055_baseball/dataset_0
+      - 006_mustard_bottle/dataset_0
+      - 037_scissors/dataset_0
+      - 021_bleach_cleanser/dataset_0
+      - 042_adjustable_wrench/dataset_0
+      - 004_sugar_box/dataset_1
+      - 025_mug/dataset_1
+      - 048_hammer/dataset_1
+      - 005_tomato_soup_can/dataset_1
+      - 035_power_drill/dataset_1
+      - 055_baseball/dataset_1
+      - 006_mustard_bottle/dataset_1
+      - 037_scissors/dataset_1
+      - 021_bleach_cleanser/dataset_1
+      - 042_adjustable_wrench/dataset_1
+      - 004_sugar_box/dataset_2
+      - 025_mug/dataset_2
+      - 048_hammer/dataset_2
+      - 005_tomato_soup_can/dataset_2
+      - 035_power_drill/dataset_2
+      - 055_baseball/dataset_2
+      - 006_mustard_bottle/dataset_2
+      - 037_scissors/dataset_2
+      - 021_bleach_cleanser/dataset_2
+      - 042_adjustable_wrench/dataset_2
+      - 004_sugar_box/dataset_3
+      - 025_mug/dataset_3
+      - 048_hammer/dataset_3
+      - 005_tomato_soup_can/dataset_3
+      - 035_power_drill/dataset_3
+      - 055_baseball/dataset_3
+      - 006_mustard_bottle/dataset_3
+      - 037_scissors/dataset_3
+      - 021_bleach_cleanser/dataset_3
+      - 042_adjustable_wrench/dataset_3
+      - banana/dataset_0
+      - banana/dataset_1
+      - banana/dataset_2
+      - banana/dataset_3
+      - bread/dataset_0
+      - bread/dataset_1
+      - bread/dataset_2
+      - bread/dataset_3
+      - cheese/dataset_0
+      - cheese/dataset_1
+      - cheese/dataset_2
+      - cheese/dataset_3
+      - cookie/dataset_0
+      - cookie/dataset_1
+      - cookie/dataset_2
+      - cookie/dataset_3
+      - corn/dataset_0
+      - corn/dataset_1
+      - corn/dataset_2
+      - corn/dataset_3
+      - lettuce/dataset_0
+      - lettuce/dataset_1
+      - lettuce/dataset_2
+      - lettuce/dataset_3
+      - plum/dataset_0
+      - plum/dataset_1
+      - plum/dataset_2
+      - plum/dataset_3
+      - strawberry/dataset_0
+      - strawberry/dataset_1
+      - strawberry/dataset_2
+      - strawberry/dataset_3
+      - tomato/dataset_0
+      - tomato/dataset_1
+      - tomato/dataset_2
+      - tomato/dataset_3
+      - sphere/dataset_0
+      - sphere/dataset_1
+      - sphere/dataset_2
+      list_datasets_test:
+      - 004_sugar_box/dataset_4
+      - 025_mug/dataset_4
+      - 048_hammer/dataset_4
+      - 005_tomato_soup_can/dataset_4
+      - 035_power_drill/dataset_4
+      - 055_baseball/dataset_4
+      - 006_mustard_bottle/dataset_4
+      - 037_scissors/dataset_4
+      - 021_bleach_cleanser/dataset_4
+      - 042_adjustable_wrench/dataset_4
+      - sphere/dataset_1
+      - sphere/dataset_2
+      look_in_folder: false
+      transforms:
+        with_augmentation: false
+        resize:
+        - 224
+        - 224
+        p_flip: 0.0
+        p_crop: 0.0
+        p_rot: 0.0
+  train_dataloader:
+    batch_size: 20
+    num_workers: 2
+    drop_last: true
+    pin_memory: true
+    persistent_workers: true
+    shuffle: true
+  val_dataloader:
+    batch_size: 20
+    num_workers: 2
+    drop_last: true
+    pin_memory: true
+    persistent_workers: true
+task:
+  _target_: tactile_ssl.downstream_task.ForceFieldModule
+  model_encoder:
+    _target_: tactile_ssl.model.vit_${ssl_model_size}
+    img_size:
+    - 224
+    - 224
+    in_chans: 6
+    pos_embed_fn: sinusoidal
+    num_register_tokens: 1
+  model_task:
+    _target_: tactile_ssl.downstream_task.ForceFieldDecoder
+    embed_dim: ${ssl_model_size}
+  checkpoint_encoder: ${paths.encoder_checkpoint_root}/${ssl_name}_vit${ssl_model_size}.ckpt
+  checkpoint_task: null
+  train_encoder: false
+  optim_cfg:
+    _partial_: true
+    _target_: torch.optim.Adam
+    lr: 0.0001
+  scheduler_cfg: null
+  ssl_config:
+    img_sz:
+    - 224
+    - 224
+    pose_estimator:
+      num_encoder_layers: 18
+    loss:
+      with_mask_supervision: false
+      with_sl_supervision: false
+      with_ssim: true
+      disparity_smoothness: 0.001
+      min_depth: 0.1
+      max_depth: 100.0
+  encoder_type: ${ssl_name}
+ssl_name: dino
+sensor: digit
+ckpt_path: null
+task_name: t1_forcefield
+ssl_model_size: base
+train_data_budget: 1.0
+val_data_budget: 1.0
+experiment_name: ${sensor}_${task_name}_${ssl_name}_vit${ssl_model_size}_t0
+seed: 42
+data_out_format: concat_ch_img
+num_frames: 2
+frame_stride: 5
+trainer:
+  max_epochs: 31
+  validation_frequency: 2
+  sanity_validate: false
+  save_checkpoint_dir: ${paths.output_dir}/checkpoints
+  checkpoint_interval_type: log
+  max_task_checkpoints: 10
+  save_probe_weights_only: true
+  limit_train_batches: 500
+  limit_val_batches: 150
+  use_distributed_sampler: false
+  devices:
+  - 0
+test:
+  data:
+    dataset_name:
+    - 005_tomato_soup_can/dataset_0
+    batch_size: 1
+  tester:
+    _partial_: true
+    _target_: tactile_ssl.test.TestForceField
+  demo:
+    _partial_: true
+    _target_: tactile_ssl.test.DemoForceField
+  path_outputs: null

@@ -1,6 +1,6 @@
 #!/bin/bash
-
-cd /fsx-gum/shared/datasets/gelsight/Object-Slide
+# only 5 folders are there, didnot download the data for some reason
+cd /mnt/dataset_drive/touch_datasets/gelsight/Object-Slide
 
 gdown https://drive.google.com/drive/folders/1HjiEuDhtCw6lGS_qvNwL4sgcRvsX0YqF?usp=sharing --folder
 gdown https://drive.google.com/drive/folders/1uCFnuIG-D9hO620kW2A5B9gIpFHA2H2m?usp=sharing --folder 

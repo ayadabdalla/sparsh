@@ -4,7 +4,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from .test_t1_force import TestForceSL  # noqa: F401
-from .test_t1_forcefield import TestForceField  # noqa: F401
+from .demo_t1_forcefield import DemoForceField  # noqa: F401
 from .test_t2_slip import TestSlipSL  # noqa: F401
 from .test_t3_pose import TestPoseSL  # noqa: F401
 from .test_t4_grasp import TestGraspSL  # noqa: F401

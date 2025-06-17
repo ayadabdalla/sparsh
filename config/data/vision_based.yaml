@@ -1,5 +1,5 @@
 train_dataloader:
-  batch_size: 64
+  batch_size: 16
   num_workers: 8
   shuffle: True
   drop_last: True
@@ -7,7 +7,7 @@ train_dataloader:
   persistent_workers: True
 
 val_dataloader:
-  batch_size: 64
+  batch_size: 16
   num_workers: 8
   shuffle: True
   drop_last: True
@@ -21,6 +21,7 @@ sensor:
     dataset:
       _target_: tactile_ssl.data.vision_tactile.VisionTactileBackboneDataset
       config:
+        sensor: digit
         remove_bg: ${data.remove_bg}
         out_format: ${data_out_format}
         num_frames: ${num_frames}
@@ -60,58 +61,58 @@ sensor:
           p_crop: 0.2
           p_rot: 0.2
 
-  - type: gelsight
-    dataset:
-      _target_: tactile_ssl.data.vision_tactile.VisionTactileBackboneDataset
-      config:
-        out_format: ${data_out_format} 
-        num_frames: ${num_frames}
-        frame_stride: ${frame_stride}
+  # - type: gelsight
+  #   dataset:
+  #     _target_: tactile_ssl.data.vision_tactile.VisionTactileBackboneDataset
+  #     config:
+  #       out_format: ${data_out_format} 
+  #       num_frames: ${num_frames}
+  #       frame_stride: ${frame_stride}
         
-        path_dataset: ${paths.data_root}/datasets/gelsight/
-        list_datasets:
-          [
-            "touch_go",
-            "object_folder",
-          ]
+  #       path_dataset: ${paths.data_root}/datasets/gelsight/
+  #       list_datasets:
+  #         [
+  #           "touch_go",
+  #           "object_folder",
+  #         ]
 
-        train_val_split: 0.725
+  #       train_val_split: 0.725
 
-        transforms:
-          with_augmentation: true
-          resize: [320, 240]
-          p_flip: 0.5
-          p_crop: 0.2
-          p_rot: 0.2
+  #       transforms:
+  #         with_augmentation: true
+  #         resize: [320, 240]
+  #         p_flip: 0.5
+  #         p_crop: 0.2
+  #         p_rot: 0.2
 
-  - type: gelsight_mini
-    dataset:
-      _target_: tactile_ssl.data.vision_tactile.VisionTactileBackboneDataset
-      config:
-        remove_bg: true
-        out_format: ${data_out_format} 
-        num_frames: ${num_frames}
-        frame_stride: ${frame_stride}
+  # - type: gelsight_mini
+  #   dataset:
+  #     _target_: tactile_ssl.data.vision_tactile.VisionTactileBackboneDataset
+  #     config:
+  #       remove_bg: true
+  #       out_format: ${data_out_format} 
+  #       num_frames: ${num_frames}
+  #       frame_stride: ${frame_stride}
         
-        dataset_ids_train: [0, 1, 2]
-        dataset_ids_val: [3]
-        path_dataset: ${paths.data_root}/datasets/gelsight/Object-Slide/
-        path_bgs: ${paths.data_root}/datasets/gelsight/Object-Slide/bgs/
-        list_datasets:
-          [
-            "bagel",
-            "banana",
-            "bread",
-            "cookie2",
-            "donut",
-            "icecream_cup",
-            "plum",
-            "strawberry",
-          ]
+  #       dataset_ids_train: [0, 1, 2]
+  #       dataset_ids_val: [3]
+  #       path_dataset: ${paths.data_root}/datasets/gelsight/Object-Slide/
+  #       path_bgs: ${paths.data_root}/datasets/gelsight/Object-Slide/bgs/
+  #       list_datasets:
+  #         [
+  #           "bagel",
+  #           "banana",
+  #           "bread",
+  #           "cookie2",
+  #           "donut",
+  #           "icecream_cup",
+  #           "plum",
+  #           "strawberry",
+  #         ]
 
-        transforms:
-          with_augmentation: true
-          resize: [320, 240]
-          p_flip: 0.5
-          p_crop: 0.2
-          p_rot: 0.2
+  #       transforms:
+  #         with_augmentation: true
+  #         resize: [320, 240]
+  #         p_flip: 0.5
+  #         p_crop: 0.2
+  #         p_rot: 0.2

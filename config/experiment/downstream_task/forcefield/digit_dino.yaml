@@ -3,7 +3,7 @@ defaults:
   - /paths: ~
   - /wandb: ~
   - /data: digit
-  - /task: digit_forcefield
+  - /task: t1_force_estimation
   - _self_
 
 ssl_name: dino
@@ -64,7 +64,7 @@ test:
   demo:
     _partial_: True
     _target_: tactile_ssl.test.DemoForceField
-    digit_serial: "D20510"
+    digit_serial: "D20866"
     gelsight_device_id: ~
   path_outputs: ~
 

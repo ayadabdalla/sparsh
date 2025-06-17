@@ -138,3 +138,7 @@ slurm/*
 slurm/*
 outputs/*
 checkpoints/*
+
+# log
+experiments/*
+checkpoints/*

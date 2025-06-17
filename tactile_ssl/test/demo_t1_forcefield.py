@@ -19,12 +19,43 @@ from tqdm import tqdm
 from scipy import stats
 from PIL import Image
 from collections import deque
-
+from omegaconf import OmegaConf
 
 from .test_task import TestTaskSL
 
 from tactile_ssl.data.vision_based_interactive import DemoForceFieldData
 from tactile_ssl.data.digit.utils import compute_diff
+
+import xmlrpc.client
+
+class RPCClient:
+    def __init__(self, server_url="http://localhost:8079/RPC2"):
+        self.server_url = server_url
+        self.proxy = xmlrpc.client.ServerProxy(self.server_url, allow_none=True)
+        
+    def call(self, method_name, *args):
+        """Call a remote method by name with provided arguments"""
+        if not hasattr(self.proxy, method_name):
+            raise AttributeError(f"Remote server has no method named '{method_name}'")
+        
+        method = getattr(self.proxy, method_name)
+        try:
+            result = method(*args)
+            return result
+        except xmlrpc.client.Fault as err:
+            print(f"A fault occurred: {err.faultCode} {err.faultString}")
+            raise
+        except xmlrpc.client.ProtocolError as err:
+            print(f"Protocol error: {err.url} {err.errcode} {err.errmsg}")
+            raise
+        except Exception as err:
+            print(f"Unexpected error: {err}")
+            raise
+    
+    def close(self):
+        """Close the connection to the server"""
+        if hasattr(self.proxy, '_ServerProxy__close'):
+            self.proxy._ServerProxy__close()
 
 class DemoForceField(TestTaskSL):
     def __init__(
@@ -40,11 +71,15 @@ class DemoForceField(TestTaskSL):
         )
         self.digit_serial = digit_serial
         self.gelsight_device_id = gelsight_device_id
+        self.robot = RPCClient("http://172.29.4.15:8079/RPC2")
 
+        
         self.init()
     
     def init(self):
+        self.config = OmegaConf.load(f"/home/epon04yc/sparsh/outputs_sparsh/config.yaml")
         self.sensor = self.config.sensor
+        # self.sensor = "digit"
         self.th_no_contact = 0.017 if self.sensor == "digit" else 0.0198
 
         self.sensor_handler = DemoForceFieldData(
@@ -54,6 +89,17 @@ class DemoForceField(TestTaskSL):
         )
         self.img_buffer = deque(maxlen=5)
         self._set_bg_template()
+
+    def _adjust_gripper(self, delta: float):
+        """Adjust gripper width by delta amount."""
+        try:
+            current_width = self.robot.call("get_gripper_width")["gripper_width"]
+            new_width = float(np.clip(current_width + delta, 0, 1))
+            result = self.robot.call("set_gripper_width", new_width)
+            print(f"Gripper width: {current_width:.2f} -> {new_width:.2f}")
+            print(result)
+        except Exception as e:
+            print(f"Error adjusting gripper: {e}")
 
     def _normalize_image(self, x):
         """Rescale image pixels to span range [0, 1]"""
@@ -196,7 +242,7 @@ class DemoForceField(TestTaskSL):
 
     def run_model(self):
         border, ratio, clip = 15, 1.0, 50
-
+        prev_error = 0.0
         cv2.namedWindow("sparsh", cv2.WINDOW_NORMAL)
         init_done = False
 
@@ -242,6 +288,7 @@ class DemoForceField(TestTaskSL):
 
             # post-process normal and shear
             normal_unmask = outputs_forces["normal"]
+            normal_print=outputs_forces["normal"]
             normal_unmask = self._normalize_image(normal_unmask)
 
             if normal_unmask.mean() > 0.4:
@@ -253,7 +300,7 @@ class DemoForceField(TestTaskSL):
 
             th = self.th_no_contact
             avg_img = np.mean(np.array(self.img_buffer), axis=0)
-            print(f'avg img std = {avg_img.std()} | th_std = {std_img_no_contact}')
+            # print(f'avg img std = {avg_img.std()} | th_std = {std_img_no_contact}')
 
             if avg_img.std() <= th:
                 mask = torch.zeros_like(mask)
@@ -311,7 +358,24 @@ class DemoForceField(TestTaskSL):
             im_normal = cv2.putText(im_normal, 'Normal', org, font, fontScale, color2, thickness, cv2.LINE_AA)
             im_shear = cv2.putText(im_shear, 'Shear', org, font, fontScale, color2, thickness, cv2.LINE_AA)
             im_h = cv2.hconcat([current_tactile_image, im_normal, im_shear])
+            print(f"Normal max: {normal_print.max():.4f} | Normal mean: {normal_print.mean():.4f} | Shear max: {shear.max():.4f} | Shear mean: {shear.mean():.4f}")
+            
+            
+            target_normal_max = 0.5
+            kp = 0.01  # Proportional gain
+            kd = 0.005  # Derivative gain
 
+            error = target_normal_max - np.max(normal_print.cpu().detach().numpy())
+            delta_error = error - prev_error
+            prev_error = error
+
+            adjustment = kp * error + kd * delta_error
+            self._adjust_gripper(-adjustment)
+            # # if normal max is less than 0.8 keep adjusting gripper width
+            # if normal_print.max() < 0.5:
+            #     self._adjust_gripper(-0.01)
+            # else:
+            #     self._adjust_gripper(0.01)
             cv2.imshow('sparsh', im_h)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break

@@ -52,6 +52,10 @@ class SLModule(Module, nn.Module):
 
     def load_task(self, checkpoint_task: str):
         try:
+            # state_dict = torch.load(checkpoint_task)
+            # remove extra forward slashes from checkpoint_task
+            checkpoint_task = checkpoint_task.replace("//", "/")
+            log.info(f"Loading task model from {checkpoint_task}")
             state_dict = torch.load(checkpoint_task)
             # check if there are keys starting with "model_encoder."
             if any([key.startswith("model_encoder.") for key in state_dict.keys()]):
@@ -80,7 +84,7 @@ class SLModule(Module, nn.Module):
 
     def load_encoder(self, checkpoint_encoder: str):
         log.info(f"Loading encoder from {checkpoint_encoder}")
-        checkpoint = torch.load(checkpoint_encoder)
+        checkpoint = torch.load(checkpoint_encoder, weights_only=False)
         if "jepa" in self.encoder_type:
             encoder_key = "target_encoder"
         elif "dino" in self.encoder_type:

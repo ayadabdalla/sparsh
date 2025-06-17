@@ -10,7 +10,6 @@ import torch
 import torch.utils.data as data
 from omegaconf import OmegaConf, DictConfig
 
-
 def demo(cfg: DictConfig):
     _GLOBAL_SEED = cfg.seed
     np.random.seed(_GLOBAL_SEED)

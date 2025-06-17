@@ -120,7 +120,6 @@ class ForceFieldModule(SLModule):
             train_encoder=train_encoder,
             encoder_type=encoder_type,
         )
-
         self.ssl_config = ssl_config
         self.with_sl_supervision = ssl_config["loss"]["with_sl_supervision"]
         self.with_mask_supervision = ssl_config["loss"]["with_mask_supervision"]
