@@ -4,6 +4,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import os
+import sys
 import hydra
 import numpy as np
 import torch
@@ -46,6 +47,8 @@ def demo(cfg: DictConfig):
 
 @hydra.main(version_base="1.3", config_path="config")
 def main(cfg: DictConfig):
+    #get and print used cfg path
+    # print(f"Using config: {OmegaConf.to_yaml(cfg)}")
     exp_name = f"{cfg.sensor}_{cfg.task_name}_{cfg.ssl_name}_vit{cfg.ssl_model_size}" 
     path_outputs = cfg.paths.output_dir
     path_ckpt_encoders = cfg.task.checkpoint_encoder

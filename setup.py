@@ -10,13 +10,13 @@ with open("README.md", "r") as fh:
 
 
 setuptools.setup(
-    name="tactile_ssl",
+    name="sparsh",
     version="0.0.1",
     author="Meta Research",
     description="SSL for tactile data",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/akashsharma02/tactile_ssl",
+    url="https://github.com/ayadabdalla/sparsh",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
