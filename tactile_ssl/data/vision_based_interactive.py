@@ -27,6 +27,7 @@ class DemoForceFieldData:
         config: DictConfig,
         digit_serial: str,
         gelsight_device_id: int,
+        digit_sensor=None,
     ):
 
         super().__init__()
@@ -69,7 +70,10 @@ class DemoForceFieldData:
         # connect to digit sensor
         self.fps = 30.0
         if self.sensor == "digit":
-            self.touch_sensor = self.connect_digit()
+            if digit_sensor is None:
+                self.touch_sensor = self.connect_digit()
+            else:
+                self.touch_sensor = digit_sensor
             self._init_digit_sensor()
             self.bg = self.get_digit_image()
         elif "gelsight" in self.sensor:

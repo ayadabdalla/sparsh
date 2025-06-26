@@ -3,6 +3,6 @@ encoder_checkpoint_root: /home/epon04yc/sparsh/outputs_sparsh/checkpoints #/mnt/
 log_dir: /home/epon04yc/sparsh/experiments
 tacbench_dir: TODO@abdullah
 
-output_dir: ${hydra:runtime.output_dir}
+output_dir: /home/epon04yc/sparsh/outputs_sparsh
 work_dir: ${hydra:runtime.cwd}
 

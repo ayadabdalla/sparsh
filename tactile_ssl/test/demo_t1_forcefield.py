@@ -66,16 +66,20 @@ class DemoForceField(TestTaskSL):
         gelsight_device_id: Optional[int],
         device,
         module: algorithm.Module,
+        digit_sensor = None,
+        robot = None,
     ):
         super().__init__(
             device=device,
             module=module,
         )
+        self.robot=robot
+        self.digit_sensor = digit_sensor
         self.digit_serial = digit_serial
         self.gelsight_device_id = gelsight_device_id
         print("initializing RPC client...")
-        self.robot = RPCClient("http://172.29.4.15:8079/RPC2")
-        self.robot.call("set_guiding_mode", True)
+        # self.robot = RPCClient("http://172.29.4.15:8079/RPC2")
+        # self.robot.call("set_guiding_mode", True)
 
         self.init()
 
@@ -86,11 +90,11 @@ class DemoForceField(TestTaskSL):
         self.sensor = self.config.sensor
         # self.sensor = "digit"
         self.th_no_contact = 0.017 if self.sensor == "digit" else 0.0198
-
         self.sensor_handler = DemoForceFieldData(
             config=self.config.data.dataset.config,
             digit_serial=self.digit_serial,
             gelsight_device_id=self.gelsight_device_id,
+            digit_sensor=self.digit_sensor,
         )
         self.img_buffer = deque(maxlen=5)
         self._set_bg_template()
@@ -252,12 +256,16 @@ class DemoForceField(TestTaskSL):
         return np.array(img)
 
     def run_model(self):
+        self.robot.call("set_gripper_width", 1)
+        self.robot.call("set_guiding_mode", False)
         border, ratio, clip = 15, 1.0, 50
         prev_error = 0.0
         prev_shear_error = 0.0
         prev_shear_error_max = 0.0
         buffer = []
         shear_buffer = []
+        shear_buffer_max = []
+        tactile_images = []
         # cv2.namedWindow("sparsh", cv2.WINDOW_NORMAL)
         init_done = False
 
@@ -265,6 +273,8 @@ class DemoForceField(TestTaskSL):
 
         print("Starting range calibration ...")
         print("Please do not touch the sensor.")
+        if self.digit_sensor is not None:
+            self.sensor_handler.touch_sensor = self.digit_sensor
 
         for _ in range(5):
             sample = self.sensor_handler.get_model_inputs()
@@ -279,9 +289,9 @@ class DemoForceField(TestTaskSL):
         counter = 0
 
         while True:
-
             sample = self.sensor_handler.get_model_inputs()
             current_tactile_image = sample["current_image_color"]
+            tactile_images.append(current_tactile_image)
 
             outputs_forces = {"normal": None, "shear": None}
 
@@ -435,16 +445,25 @@ class DemoForceField(TestTaskSL):
             # normal_print = 0.06
             if (len(buffer) >= 10 and np.mean(buffer[-10:]) < 0.0005) or (
                 len(shear_buffer) >= 10 and np.mean(shear_buffer[-10:]) < 0.0002
-            ):
+            ) or (len(shear_buffer_max) >= 10 and np.mean(shear_buffer_max[-10:]) < 0.0005):
                 print("controller stabilized")
                 print(
                     f"Gripper adjustment: {-adjustment:.4f} | Error: {error_mean:.4f} | Target Normal Max: {target_normal_max:.4f}"
                 )
+                # prompt for a user input to continue
+                user_input = input(
+                    "Press Enter to continue or type 'exit' to quit: "
+                )
+                if user_input.strip().lower() == '':
+                    print("Done")
+                    return tactile_images
+                    # self.robot.call("home_robot")
+                    # self.robot.call("set_guiding_mode", True)
             else:
                 # minimal contact thresholds should be later extracted from signal from image to touch model
-                target_normal_max = 0.065
-                target_shear_max = 0.27
-                target_shear_mean = 0.035
+                target_normal_max = 0.07
+                target_shear_max = 0.32
+                target_shear_mean = 0.04
                 ##################################################
 
                 shear_error_mean = target_shear_mean - np.mean(shear)
@@ -473,15 +492,16 @@ class DemoForceField(TestTaskSL):
                     or (shear_error_mean < 0.003 and shear_error_mean >= 0)
                     or (shear_error_max < 0.003 and shear_error_max >= 0)
                     or delta_shear_mean <= -0.005
-                    or delta_shear_max <= -0.005
+                    or delta_shear_max <= -0.03
                 ):
                     kp = 0.005
                     print("contact detected, slow mode")
+                    buffer.append(error_mean)
+                    shear_buffer.append(shear_error_mean)
+                    shear_buffer_max.append(shear_error_max)
                 elif error_mean >= 0.003:
                     kp = 8
                 adjustment = kp * error_mean + kd * delta_error
-                buffer.append(error_mean)
-                shear_buffer.append(shear_error_mean)
 
                 self._adjust_gripper(-adjustment)
                 time.sleep(1)

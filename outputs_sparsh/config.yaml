@@ -1,6 +1,6 @@
 paths:
   data_root: /media/chiguera/GUM/
-  encoder_checkpoint_root: /media/chiguera/2TB/sparsh/encoders_460k/
+  encoder_checkpoint_root: /home/epon04yc/sparsh/outputs_sparsh/checkpoints
   log_dir: /media/chiguera/GUM/tactile_ssl/outputs_sparsh/${experiment_name}/logs/
   output_dir: /media/chiguera/GUM/tactile_ssl/outputs_sparsh/${experiment_name}/
   work_dir: ${hydra:runtime.cwd}
