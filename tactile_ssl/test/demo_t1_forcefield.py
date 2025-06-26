@@ -68,6 +68,7 @@ class DemoForceField(TestTaskSL):
         module: algorithm.Module,
         digit_sensor = None,
         robot = None,
+        force_controller_parameters: Optional[dict] = None,
     ):
         super().__init__(
             device=device,
@@ -76,6 +77,7 @@ class DemoForceField(TestTaskSL):
         self.robot=robot
         self.digit_sensor = digit_sensor
         self.digit_serial = digit_serial
+        self.force_controller_parameters = force_controller_parameters
         self.gelsight_device_id = gelsight_device_id
         print("initializing RPC client...")
         # self.robot = RPCClient("http://172.29.4.15:8079/RPC2")
@@ -257,7 +259,7 @@ class DemoForceField(TestTaskSL):
 
     def run_model(self):
         self.robot.call("set_gripper_width", 1)
-        self.robot.call("set_guiding_mode", False)
+        self.robot.call("set_guiding_mode", True)
         border, ratio, clip = 15, 1.0, 50
         prev_error = 0.0
         prev_shear_error = 0.0
@@ -460,16 +462,23 @@ class DemoForceField(TestTaskSL):
                     # self.robot.call("home_robot")
                     # self.robot.call("set_guiding_mode", True)
             else:
-                # minimal contact thresholds should be later extracted from signal from image to touch model
-                target_normal_max = 0.07
-                target_shear_max = 0.32
-                target_shear_mean = 0.04
+                # minimal contact thresholds should be later extracted from signal from image to touch modelt
+                print(self.force_controller_parameters)
+                target_normal_max = self.force_controller_parameters.get(
+                    "target_normal_max", 0.07
+                )
+                target_shear_max = self.force_controller_parameters.get(
+                    "target_shear_max", 0.32
+                )
+                target_shear_mean = self.force_controller_parameters.get(
+                    "target_shear_mean", 0.04
+                )
                 ##################################################
 
                 shear_error_mean = target_shear_mean - np.mean(shear)
                 shear_error_max = target_shear_max - np.max(shear)
-                kp = 0.005  # Proportional gain
-                kd = 0.002  # Derivative gain
+                kp = self.force_controller_parameters.get("kp_slow",0.005)  # Proportional gain
+                kd = self.force_controller_parameters.get("kd",0.002)  # Derivative gain
                 error_mean = target_normal_max - np.mean(
                     normal_print.cpu().detach().numpy()
                 )
@@ -486,21 +495,21 @@ class DemoForceField(TestTaskSL):
                 prev_shear_error_max = shear_error_max
                 # #make kp adaptive based on std of mean and max of predicted normal and shear forces
                 if (
-                    (error_mean < 0.003 and error_mean >= 0)
-                    or (error_max < 0.003 and error_max >= 0)
-                    or delta_error <= -0.003
-                    or (shear_error_mean < 0.003 and shear_error_mean >= 0)
-                    or (shear_error_max < 0.003 and shear_error_max >= 0)
-                    or delta_shear_mean <= -0.005
-                    or delta_shear_max <= -0.03
+                    (error_mean < self.force_controller_parameters.get("error_threshold",0.003) and error_mean >= 0)
+                    or (error_max < self.force_controller_parameters.get("error_threshold",0.003) and error_max >= 0)
+                    or delta_error <= -self.force_controller_parameters.get("error_threshold",0.003)
+                    or (shear_error_mean < self.force_controller_parameters.get("error_threshold",0.003) and shear_error_mean >= 0)
+                    or (shear_error_max < self.force_controller_parameters.get("error_threshold",0.003) and shear_error_max >= 0)
+                    or delta_shear_mean <= -self.force_controller_parameters.get("delta_error_threshold",0.005)
+                    or delta_shear_max <= -self.force_controller_parameters.get("delta_shear_error_threshold",0.03)
                 ):
-                    kp = 0.005
+                    kp = self.force_controller_parameters.get("kp_slow",0.005)
                     print("contact detected, slow mode")
                     buffer.append(error_mean)
                     shear_buffer.append(shear_error_mean)
                     shear_buffer_max.append(shear_error_max)
-                elif error_mean >= 0.003:
-                    kp = 8
+                elif error_mean >= self.force_controller_parameters.get("error_threshold",0.003):
+                    kp = self.force_controller_parameters.get("kp_fast",8)
                 adjustment = kp * error_mean + kd * delta_error
 
                 self._adjust_gripper(-adjustment)
