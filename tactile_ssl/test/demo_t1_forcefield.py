@@ -69,7 +69,7 @@ class MultiDemoForceField(TestTaskSL):
         digit_sensors: Optional[List] = None,
         robot=None,
         force_controller_parameters: Optional[dict] = None,
-        sensor_combination_method: str = "sum",  # "average", "max", "concat", "separate"
+        sensor_combination_method: str = "min",  # "average", "max", "concat", "separate"
         sensor_weights: Optional[List[float]] = None,
     ):
         super().__init__(
@@ -203,6 +203,9 @@ class MultiDemoForceField(TestTaskSL):
         elif self.sensor_combination_method == "sum":
             # Element-wise sum
             return torch.sum(torch.stack(values), dim=0)
+        elif self.sensor_combination_method == "min":
+            # Element-wise minimum
+            return torch.min(torch.stack(values), dim=0)[0]
         else:
             raise ValueError(f"Unknown combination method: {self.sensor_combination_method}")
 
@@ -364,8 +367,8 @@ class MultiDemoForceField(TestTaskSL):
         ax_shear.set_clim(0.0, 1.0)
 
     def run_model(self):
-        self.robot.call("set_gripper_width", 1)
-        self.robot.call("set_guiding_mode", True)
+        # self.robot.call("set_gripper_width", 1)
+        # self.robot.call("set_guiding_mode", True)
         border, ratio, clip = 15, 1.0, 50
         prev_error = 0.0
         prev_shear_error = 0.0
@@ -609,10 +612,10 @@ class MultiDemoForceField(TestTaskSL):
                 f"Normal max: {combined_normal.max():.4f} | Normal mean: {combined_normal.mean():.4f} | Shear max: {combined_shear.max():.4f} | Shear mean: {combined_shear.mean():.4f}"
             )
             
-            # Control logic (same as original but using combined sensor data)
-            if (len(buffer) >= 10 and np.mean(buffer[-10:]) < 0.0005) or (
-                len(shear_buffer) >= 10 and np.mean(shear_buffer[-10:]) < 0.0002
-            ) or (len(shear_buffer_max) >= 10 and np.mean(shear_buffer_max[-10:]) < 0.0005):
+
+            if (len(buffer) >= 15 and np.mean(buffer[-15:]) < 0.0005) or (
+                len(shear_buffer) >= 15 and np.mean(shear_buffer[-15:]) < 0.0002
+            ) or (len(shear_buffer_max) >= 15 and np.mean(shear_buffer_max[-15:]) < 0.0005):
                 print("controller stabilized")
                 print(
                     f"Gripper adjustment: {-adjustment:.4f} | Error: {error_mean:.4f} | Target Normal Max: {target_normal_max:.4f}"
@@ -626,13 +629,13 @@ class MultiDemoForceField(TestTaskSL):
             else:
                 print(self.force_controller_parameters)
                 target_normal_max = self.force_controller_parameters.get(
-                    "target_normal_max", 0.07
+                    "target_normal_max", 0.075
                 )
                 target_shear_max = self.force_controller_parameters.get(
-                    "target_shear_max", 0.32
+                    "target_shear_max", 0.33
                 )
                 target_shear_mean = self.force_controller_parameters.get(
-                    "target_shear_mean", 0.04
+                    "target_shear_mean", 0.045
                 )
 
                 shear_error_mean = target_shear_mean - np.mean(combined_shear)
@@ -675,7 +678,11 @@ class MultiDemoForceField(TestTaskSL):
                     shear_buffer.append(shear_error_mean)
                     shear_buffer_max.append(shear_error_max)
                 elif error_mean >= self.force_controller_parameters.get("error_threshold", 0.003):
-                    kp = self.force_controller_parameters.get("kp_fast", 8)
+                    if len(buffer) < 10:
+                        kp = self.force_controller_parameters.get("kp_fast", 8)
+                    else:
+                        kp = self.force_controller_parameters.get("kp_slow", 0.005)
+                        print("entered slow mode many times, will not change to fast mode")
                     
                 adjustment = kp * error_mean + kd * delta_error
 
