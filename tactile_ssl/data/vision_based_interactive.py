@@ -171,7 +171,7 @@ class MultiDemoForceFieldData:
 
     def get_digit_image(self, sensor_idx: int):
         """Get image from a specific DIGIT sensor."""
-        tactile_image = self.touch_sensors[sensor_idx].get_frame()
+        tactile_image = self.touch_sensors[sensor_idx].get_frame_safe()
         tactile_image = cv2.flip(tactile_image, 1)
         tactile_image = self._process_image(tactile_image)
         self.tactile_windows[sensor_idx].append(tactile_image)

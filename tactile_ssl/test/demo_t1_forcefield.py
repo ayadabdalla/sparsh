@@ -93,7 +93,7 @@ class MultiDemoForceField(TestTaskSL):
         self.sensor_combination_method = sensor_combination_method
         self.sensor_weights = sensor_weights or [1.0] * self.num_sensors
         
-        print("initializing RPC client...")
+        # print("initializing RPC client...")
         # self.robot = RPCClient("http://172.29.4.15:8079/RPC2")
         # self.robot.call("set_guiding_mode", True)
 
