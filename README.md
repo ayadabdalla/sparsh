@@ -1,3 +1,6 @@
+# Sparsh force controller
+A two finger hand force controller built on sparsh force estimation model.
+
 # Sparsh: Self-supervised touch representations for vision-based tactile sensing
 
 
